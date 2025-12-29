@@ -1,0 +1,17 @@
+data/raw_pcaps/*.pcap
+data/raw_pcaps/*.cap
+data/logs/*.log
+data/processed_csvs/*.csv
+
+
+__pycache__/
+*.pyc
+.ipynb_checkpoints
+
+
+.DS_Store
+Thumbs.db
+
+
+.vscode/
+.idea/
