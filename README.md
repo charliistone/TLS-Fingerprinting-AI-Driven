@@ -48,7 +48,6 @@ The system operates as a continuous, asynchronous pipeline:
 ---
 
 ## Project Structure
-```text
 tls-fingerprinting/
 ├── app/                    # Core Application Logic
 │   ├── main.py             # Main Orchestrator
