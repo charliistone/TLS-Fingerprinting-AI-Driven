@@ -4,7 +4,6 @@
 ![Docker](https://img.shields.io/badge/Docker-Enabled-blue.svg)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-blue.svg)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-orange.svg)
-![License](https://img.shields.io/badge/License-MIT-green.svg)
 
 ## Overview
 As encryption standards like **TLS 1.3** become the global norm, traditional Deep Packet Inspection (DPI) is becoming obsolete. This project provides a sophisticated network security framework designed to classify and analyze encrypted traffic **without decryption**. 
@@ -16,8 +15,8 @@ By leveraging **JA3/JA3S Fingerprinting**, Machine Learning, and a real-time **A
 ---
 
 ## Key Features
-* **Cloud-Native & Scalable:** Fully Dockerized architecture, designed for seamless orchestration via **Kubernetes (K8s)**.
-* **High-Performance Sniffing:** Real-time packet capture utilizing `Scapy` and `TShark` within optimized Linux containers using **Host Network** access.
+* **Cloud-Native & Scalable:** Fully Dockerized architecture, designed for orchestration via **Kubernetes (K8s)**.
+* **High-Performance Sniffing:** Real-time packet capture utilizing `Scapy` and `TShark` within Linux containers using **Host Network** access.
 * **JA3/JA3S Profiling:** Automated extraction of TLS handshake metadata to create unique cryptographic signatures.
 * **AI-Powered Classification:** Multi-layered Machine Learning models for anomaly detection and malware family classification.
 * **Active Verification (Feedback Loop):** An innovative module that validates "suspicious" fingerprints against global Threat Intelligence (TI) feeds (e.g., **Abuse.ch SSLBL**, **VirusTotal**).
@@ -31,7 +30,7 @@ The system operates as a continuous, asynchronous pipeline:
 2.  **Processing Layer:** Extracts TLS features and calculates JA3/JA3S hashes.
 3.  **Inference Layer:** The AI model predicts the nature of the traffic (Benign vs. Malicious).
 4.  **Verification Layer:** High-confidence threats are cross-referenced with external TI APIs.
-5.  **Persistence Layer:** All findings are stored in **PostgreSQL** for forensic analysis and future model retraining.
+5.  **Persistence Layer:** All findings are stored in **PostgreSQL** for forensic analysis.
 
 ---
 
@@ -48,43 +47,45 @@ The system operates as a continuous, asynchronous pipeline:
 ---
 
 ## Project Structure
-tls-fingerprinting/
-├── app/                    # Core Application Logic
-│   ├── main.py             # Main Orchestrator
-│   ├── sniffer/            # Packet Capture & Sniffing Logic
-│   ├── processing/         # JA3 Extraction & Feature Engineering
-│   ├── models/             # ML Model Inference Engine
-│   └── utils/              # Active Verifier & DB Handlers
-├── k8s/                    # Kubernetes Deployment Manifests
-├── data/                   # Local PCAP & Dataset Storage
-├── saved_models/           # Pre-trained Model Weights (.pkl)
-├── Dockerfile              # Multi-stage Optimized Build
-├── docker-compose.yml      # Local Multi-container Orchestration
-└── requirements.txt        # Python Dependencies
 
----
----
+    tls-fingerprinting/
+    ├── app/                        # Core Application Logic
+    │   ├── main.py                 # Main Orchestrator (Entry Point)
+    │   ├── sniffer/                # Real-time Packet Capture Logic
+    │   ├── processing/             # JA3/JA3S Extraction & Feature Engineering
+    │   ├── models/                 # AI/ML Inference Engine
+    │   └── utils/                  # Active Verifier & DB Handlers
+    ├── k8s/                        # Kubernetes Deployment & Service Manifests
+    ├── data/                       # Local Storage for PCAPs (Git Ignored)
+    ├── saved_models/               # Pre-trained Model Weights (.pkl)
+    ├── Dockerfile                  # Multi-stage Optimized Docker Image
+    ├── docker-compose.yml          # Local Development Stack
+    └── requirements.txt            # Python Project Dependencies
+
 ---
 
 ## Getting Started
 
 ### Prerequisites
 * **Docker & Docker Compose** installed.
-* **Root/Administrator privileges** (required for raw socket access/sniffing).
+* **Root/Administrator privileges** (required for raw socket access).
 * (Optional) **Minikube** or **Kind** for Kubernetes orchestration.
 
 ### Local Deployment (Docker)
 1. **Clone the repository:**
+
     git clone [https://github.com/AhmetCanCengiz/TLS-Project.git](https://github.com/AhmetCanCengiz/TLS-Project.git)
     cd TLS-Project
 
 2. **Start the entire stack (App + Database):**
+
     docker-compose up --build
-    
-   *The system will automatically start sniffing on the host network and log findings to the PostgreSQL container.*
+
+*The system will automatically start sniffing on the host network and log findings to the PostgreSQL container.*
 
 ### Kubernetes Deployment
 Deploy the infrastructure to a K8s cluster:
+
     kubectl apply -f k8s/configmap.yaml
     kubectl apply -f k8s/secret.yaml
     kubectl apply -f k8s/deployment.yaml
@@ -92,7 +93,7 @@ Deploy the infrastructure to a K8s cluster:
 ---
 
 ## Active Verification Loop
-One of the standout features of this project is the **Active Verification** mechanism. Unlike static analysis tools, this system:
+One of the standout features of this project is the **Active Verification** mechanism. Unlike static tools, this system:
 * **Flags** a suspicious JA3 hash via the ML model.
 * **Automatically queries** global databases (**Abuse.ch SSLBL**).
 * **Updates** its own database with a "Verified Malicious" tag if a match is found.
@@ -106,4 +107,7 @@ This project is developed for academic and research purposes only. The tools pro
 ---
 
 ## Author
-**Ahmet Can Cengiz** Computer Engineering Student at **Ankara Bilim University** *Expected Graduation: Summer 2026* [LinkedIn](https://www.linkedin.com/in/ahmet-can-cengiz-61a58a2a2/) | [GitHub](https://github.com/charliistone)
+**Ahmet Can Cengiz**
+Computer Engineering Student at **Ankara Bilim University**
+*Expected Graduation: Summer 2026*
+[LinkedIn](https://www.linkedin.com/in/ahmet-can-cengiz-61a58a2a2/) | [GitHub](https://github.com/charliistone)
