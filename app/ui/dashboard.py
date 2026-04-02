@@ -1,6 +1,15 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
+from app.utils.db_handler import DatabaseManager
+
+db = DatabaseManager()
+
+def get_live_data():
+    # Fetch the last 10 events from the real database
+    query = "SELECT timestamp, src_ip, dst_ip, ja3_hash, prediction FROM tls_events ORDER BY timestamp DESC LIMIT 10"
+    # Convert query result to a Pandas DataFrame
+    # ... logic to return real data
 
 st.set_page_config(page_title="TLS GUARD | Threat Intel", layout="wide", initial_sidebar_state="expanded")
 
