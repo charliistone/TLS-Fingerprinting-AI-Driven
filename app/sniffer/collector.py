@@ -1,6 +1,8 @@
 import hashlib
-from scapy.all import sniff, TLS, TLSClientHello
+from scapy.all import sniff, load_layer
 import logging
+load_layer("tls")
+from scapy.layers.tls.all import TLS, TLSClientHello
 
 class JA3Processor:
     """Encapsulates the logic for JA3 fingerprint generation."""
@@ -33,23 +35,34 @@ class JA3Processor:
             logging.debug(f"Parsing failed: {e}")
             return None
 
+# ... (previous imports)
 class NetworkSniffer:
-    """Passive sniffer that utilizes the JA3Processor and DatabaseManager."""
-    
-    def __init__(self, db_manager):
+    def __init__(self, db_manager, predictor):
         self.db = db_manager
         self.processor = JA3Processor()
+        self.predictor = predictor # Injecting the AI Brain
 
     def _packet_callback(self, packet):
         if packet.haslayer(TLSClientHello):
+            print("\n[!] TLS Client Hello Found!")
             ja3 = self.processor.get_hash(packet)
             if ja3:
                 src = packet[0][1].src
                 dst = packet[0][1].dst
-                self.db.log_event(src, dst, ja3)
-                logging.info(f"[+] Captured JA3: {ja3} from {src}")
+                
+                # Use the AI to predict the nature of the hash
+                prediction = self.predictor.predict(ja3)
+                
+                # Log to DB with the AI's verdict
+                self.db.log_event(src, dst, ja3, pred=prediction)
+                logging.info(f"[+] {src} -> {dst} | JA3: {ja3} | AI: {prediction}")
+            
 
-    def start(self, interface="any"):
+    def start(self, interface=None):
         logging.info(f"Sniffer active on {interface}...")
-        # store=0 prevents memory leaks during long runs
+        if interface is None or interface == "any":
+            # macOS's default environment en0. !!!! Change this for Windows.!!!!
+            interface = "en0" 
+    
+        logging.info(f"Sniffer active on {interface}...")
         sniff(iface=interface, prn=self._packet_callback, store=0)

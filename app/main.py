@@ -2,16 +2,19 @@ import threading
 import subprocess
 import logging
 import sys
+import os
 from app.utils.db_handler import DatabaseManager
 from app.sniffer.collector import NetworkSniffer
+from app.models.predictor import TLSPredictor
 
 # Setup professional logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 
 def start_backend():
-    """Initializes the database and starts the network sniffer."""
     db = DatabaseManager()
-    sniffer = NetworkSniffer(db)
+    predictor = TLSPredictor() # Load the AI
+    sniffer = NetworkSniffer(db, predictor) # Inject both DB and AI
+    sniffer.start(interface="any")
     
     try:
         # Use 'any' for Docker/Linux environments
@@ -22,8 +25,14 @@ def start_backend():
 
 def start_frontend():
     """Launches the Streamlit UI as a subprocess."""
-    logging.info("Launching Discord-styled UI...")
-    subprocess.run(["streamlit", "run", "app/ui/dashboard.py"])
+    logging.info("Launching UI...")
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.getcwd()
+    
+    # Use streamlit that inside the venv
+    streamlit_path = os.path.join(os.getcwd(), "venv", "bin", "streamlit")
+    
+    subprocess.run([streamlit_path, "run", "app/ui/dashboard.py"], env=env)
 
 if __name__ == "__main__":
     # Run the sniffer in a background thread
