@@ -4,10 +4,9 @@ import numpy as np
 
 st.set_page_config(page_title="TLS GUARD | Threat Intel", layout="wide", initial_sidebar_state="expanded")
 
-# --- STYLING CSS & ICON ENGINE ---
+# --- CSS & ICONS ---
 st.markdown("""
 <style>
-    /* Bootstrap Icons Entegrasyonu */
     @import url('https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css');
 
     :root {
@@ -24,7 +23,6 @@ st.markdown("""
     .stApp { background-color: var(--bg-main); color: var(--text-primary); }
     [data-testid="stSidebar"] { background-color: var(--bg-tertiary) !important; border-right: 1px solid rgba(255,255,255,0.05); }
     
-    /* Özel Metrik Kartları */
     .metric-card {
         background-color: var(--bg-secondary);
         padding: 20px;
@@ -36,7 +34,6 @@ st.markdown("""
     .metric-title { color: #949BA4; font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
     .metric-value { color: #FFFFFF; font-size: 26px; font-weight: 800; margin-top: 5px; }
 
-    /* Tablo Güzelleştirme */
     [data-testid="stTable"] { background-color: var(--bg-secondary); border-radius: 8px; overflow: hidden; }
 </style>
 """, unsafe_allow_html=True)
