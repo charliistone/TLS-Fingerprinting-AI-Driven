@@ -17,6 +17,9 @@ services:
     # ----------------------
     depends_on:
       - db
+    ports:
+      - "8051:8051"
+    command: streamlit run app/ui/dashboard.py
 
   # Database
   db:
