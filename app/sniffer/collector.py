@@ -1,68 +1,92 @@
-import hashlib
-from scapy.all import sniff, load_layer
 import logging
-load_layer("tls")
-from scapy.layers.tls.all import TLS, TLSClientHello
+import os
+import shutil
+import subprocess
+from typing import Optional
 
-class JA3Processor:
-    """Encapsulates the logic for JA3 fingerprint generation."""
-    
+
+class TSharkLiveCaptureAgent:
+    """
+    Manages a live TShark capture subprocess for ring-buffer PCAP generation.
+    Replaces the scapy-based sniffer with a tshark subprocess approach.
+    Used by TLSFingerprintPipeline for continuous live capture.
+    """
+
+    def __init__(
+        self,
+        capture_dir: str = "data/captures",
+        tshark_path: Optional[str] = None,
+        interface: Optional[str] = None,
+        capture_filter: Optional[str] = None,
+        ring_duration: int = 30,
+        ring_files: int = 10,
+    ):
+        self.capture_dir = capture_dir
+        self.tshark_path = tshark_path or self._resolve_tshark()
+        self.interface = interface or ""
+        self.capture_filter = capture_filter or ""
+        self.ring_duration = ring_duration
+        self.ring_files = ring_files
+        self.process: Optional[subprocess.Popen] = None
+
     @staticmethod
-    def _is_grease(val):
-        """Filters out GREASE values as per RFC 8701."""
-        return (val & 0x0f0f) == 0x0a0a
+    def _resolve_tshark() -> str:
+        return (
+            os.environ.get("TSHARK_PATH")
+            or shutil.which("tshark")
+            or r"C:\Program Files\Wireshark\tshark.exe"
+        )
 
-    def get_hash(self, packet):
-        """Generates a JA3 MD5 hash from a TLS Client Hello packet."""
+    def is_running(self) -> bool:
+        return self.process is not None and self.process.poll() is None
+
+    def start(self) -> bool:
+        """Start a TShark ring-buffer capture. Returns True on success."""
+        if not self.interface:
+            logging.warning("[sniffer] No interface configured — live capture not started.")
+            return False
+
+        output_file = os.path.join(self.capture_dir, "live_tls_capture.pcapng")
+        os.makedirs(self.capture_dir, exist_ok=True)
+
+        cmd = [
+            self.tshark_path,
+            "-i", self.interface,
+            "-w", output_file,
+            "-b", f"duration:{self.ring_duration}",
+            "-b", f"files:{self.ring_files}",
+            "-Q",
+        ]
+        if self.capture_filter:
+            cmd.extend(["-f", self.capture_filter])
+
+        logging.info(
+            "[sniffer] Starting TShark | interface=%s | ring_duration=%s | ring_files=%s",
+            self.interface, self.ring_duration, self.ring_files
+        )
+
         try:
-            tls_layer = packet[TLSClientHello]
-            
-            # 1. SSL/TLS Version
-            version = str(tls_layer.version)
-            
-            # 2. Accepted Ciphers (excluding GREASE)
-            ciphers = "-".join([str(c) for c in tls_layer.ciphers if not self._is_grease(c)])
-            
-            # 3. Extensions, 4. Elliptic Curves, 5. EC Point Formats
-            # Note: Production parsing requires iterating through tls_layer.extensions
-            extensions = "" 
-            curves = ""
-            point_formats = ""
-
-            ja3_string = f"{version},{ciphers},{extensions},{curves},{point_formats}"
-            return hashlib.md5(ja3_string.encode()).hexdigest()
+            self.process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL
+            )
+            logging.info("[sniffer] TShark process started (pid=%s)", self.process.pid)
+            return True
+        except FileNotFoundError:
+            logging.error("[sniffer] TShark not found at: %s", self.tshark_path)
+            return False
         except Exception as e:
-            logging.debug(f"Parsing failed: {e}")
-            return None
+            logging.error("[sniffer] Failed to start TShark: %s", e)
+            return False
 
-# ... (previous imports)
-class NetworkSniffer:
-    def __init__(self, db_manager, predictor):
-        self.db = db_manager
-        self.processor = JA3Processor()
-        self.predictor = predictor # Injecting the AI Brain
-
-    def _packet_callback(self, packet):
-        if packet.haslayer(TLSClientHello):
-            print("\n[!] TLS Client Hello Found!")
-            ja3 = self.processor.get_hash(packet)
-            if ja3:
-                src = packet[0][1].src
-                dst = packet[0][1].dst
-                
-                # Use the AI to predict the nature of the hash
-                prediction = self.predictor.predict(ja3)
-                
-                # Log to DB with the AI's verdict
-                self.db.log_event(src, dst, ja3, pred=prediction)
-                logging.info(f"[+] {src} -> {dst} | JA3: {ja3} | AI: {prediction}")
-            
-
-    def start(self, interface=None):
-        logging.info(f"Sniffer active on {interface}...")
-        if interface is None or interface == "any":
-            # macOS's default environment en0. !!!! Change this for Windows.!!!!
-            interface = "en0" 
-    
-        logging.info(f"Sniffer active on {interface}...")
-        sniff(iface=interface, prn=self._packet_callback, store=0)
+    def stop(self) -> None:
+        """Terminate the TShark capture process gracefully."""
+        if self.process and self.process.poll() is None:
+            logging.info("[sniffer] Stopping TShark capture (pid=%s)", self.process.pid)
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except Exception:
+                self.process.kill()
+            self.process = None
