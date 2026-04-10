@@ -1,38 +1,21 @@
 services:
-  # Main App (AI & Sniffer)
   tls-app:
     build:
       context: .
       dockerfile: Dockerfile
     container_name: tls_analyzer
     volumes:
-      - .:/app              # (Hot-reload)
-      - ./data:/app/data    # Non-volatile storage for captured PCAP files
+      - .:/app
+      - ./data:/app/data       # Persistent SQLite DB and PCAP captures
     environment:
-      - PYTHONUNBUFFERED=1  # Being able to see logs instantly on the terminal
-      - DB_URL=postgresql://user:pass@db:5432/tls_db
-    # --- Critical Settings ---
-    network_mode: "host"    # For listening the PC's network card directly
-    privileged: true        # Kernel authorities for packet capturing (sniffing)
-    # ----------------------
-    depends_on:
-      - db
+      - PYTHONUNBUFFERED=1
+      - DB_PATH=/app/data/tls_fingerprint.db
+      - CAPTURE_DIR=/app/data/captures
+    network_mode: "host"
+    privileged: true
     ports:
-      - "8051:8051"
-    command: streamlit run app/ui/dashboard.py
+      - "8501:8501"
+    command: >
+      sh -c "python app/main.py --with-dashboard --capture-owner host"
 
-  # Database
-  db:
-    image: postgres:15-alpine
-    container_name: tls_db
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=pass
-      - POSTGRES_DB=tls_db
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-
-volumes:
-  postgres_data:
+volumes: {}
